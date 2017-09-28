@@ -724,9 +724,10 @@ int
 sqlite3CheckObjectName(Parse * pParse, const char *zName)
 {
 	if (!pParse->db->init.busy && pParse->nested == 0
-	    && 0 == sqlite3StrNICmp(zName, "sqlite_", 7)) {
+	    && 0 == sqlite3StrNICmp(zName, "_", 1)) {
 		sqlite3ErrorMsg(pParse,
-				"object name reserved for internal use: %s",
+				"object names beginning with \"_\" are "
+				"reserved for internal use: \"%s\"",
 				zName);
 		return SQLITE_ERROR;
 	}

@@ -1058,52 +1058,45 @@ test:do_catchsql_test(
 test:do_catchsql_test(
     "index-18.1",
     [[
-        CREATE TABLE sqlite_t1(a, b, c);
+        CREATE TABLE _t1(a, b, c);
     ]], {
         -- <index-18.1>
-        1, "object name reserved for internal use: sqlite_t1"
+        1, 'object names beginning with "_" are reserved for internal use: "_t1"'
         -- </index-18.1>
     })
 
 test:do_catchsql_test(
     "index-18.2",
     [[
-        CREATE INDEX sqlite_i1 ON t7(c);
+        CREATE INDEX _i1 ON t7(c);
     ]], {
         -- <index-18.2>
-        1, "object name reserved for internal use: sqlite_i1"
+        1, 'object names beginning with "_" are reserved for internal use: "_i1"'
         -- </index-18.2>
     })
 
 test:do_catchsql_test(
     "index-18.3",
     [[
-        CREATE VIEW sqlite_v1 AS SELECT * FROM t7;
+        CREATE VIEW _v1 AS SELECT * FROM t7;
     ]], {
         -- <index-18.3>
-        1, "object name reserved for internal use: sqlite_v1"
+        1, 'object names beginning with "_" are reserved for internal use: "_v1"'
         -- </index-18.3>
     })
 
 
 
--- ifcapable view
--- MUST_WORK_TEST
-if (1 > 0)
- then
-    test:do_catchsql_test(
-        "index-18.4",
-        [[
-            CREATE TRIGGER sqlite_tr1 BEFORE INSERT ON t7 BEGIN SELECT 1; END;
-        ]], {
-            -- <index-18.4>
-            1, "object name reserved for internal use: sqlite_tr1"
-            -- </index-18.4>
-        })
+test:do_catchsql_test(
+    "index-18.4",
+    [[
+        CREATE TRIGGER _tr1 BEFORE INSERT ON t7 BEGIN SELECT 1; END;
+    ]], {
+        -- <index-18.4>
+        1, 'object names beginning with "_" are reserved for internal use: "_tr1"'
+        -- </index-18.4>
+    })
 
-
-
-end
 test:do_execsql_test(
     "index-18.5",
     [[
