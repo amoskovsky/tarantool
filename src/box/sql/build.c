@@ -714,6 +714,31 @@ sqlite3FindDb(sqlite3 * db, Token * pName)
 }
 
 /*
+ * This routine is used to check if UTF-8 string zName is equal
+ * to name of one system space. It is a part of code which
+ * does not allow user to create trigger on system spaces.
+ */
+int
+sqlite3CheckTriggerTableName(const char * zName)
+{
+	static const char * systemSpaces[] = {
+		TARANTOOL_SYS_SCHEMA_NAME,
+		TARANTOOL_SYS_SPACE_NAME,
+		TARANTOOL_SYS_INDEX_NAME,
+		TARANTOOL_SYS_TRIGGER_NAME,
+		TARANTOOL_SYS_TRUNCATE_NAME
+	};
+
+	for (size_t i = 0; i < sizeof(systemSpaces)/sizeof(char *); i++) {
+		if (sqlite3StrNICmp(zName, systemSpaces[i], 6) == 0) {
+			return SQLITE_ERROR;
+		}
+	}
+
+	return SQLITE_OK;
+}
+
+/*
  * This routine is used to check if the UTF-8 string zName is a legal
  * unqualified name for a new schema object (table, index, view or
  * trigger). All names are legal except those that begin with the string

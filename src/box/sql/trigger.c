@@ -123,6 +123,13 @@ sqlite3BeginTrigger(Parse * pParse,	/* The parse context of the CREATE TRIGGER s
 	if (!zName || SQLITE_OK != sqlite3CheckObjectName(pParse, zName)) {
 		goto trigger_cleanup;
 	}
+	/* Do not create a trigger on a system table */
+	if (sqlite3CheckTriggerTableName(pTab->zName) != SQLITE_OK) {
+		sqlite3ErrorMsg(pParse,
+				"cannot create trigger on system table \"%s\"",
+				pTab->zName);
+		goto trigger_cleanup;
+	}
 	assert(sqlite3SchemaMutexHeld(db, 0));
 	if (sqlite3HashFind(&(db->mdb.pSchema->trigHash), zName)) {
 		if (!noErr) {
@@ -132,13 +139,6 @@ sqlite3BeginTrigger(Parse * pParse,	/* The parse context of the CREATE TRIGGER s
 			assert(!db->init.busy);
 			sqlite3CodeVerifySchema(pParse);
 		}
-		goto trigger_cleanup;
-	}
-
-	/* Do not create a trigger on a system table */
-	if (sqlite3StrNICmp(pTab->zName, "sqlite_", 7) == 0) {
-		sqlite3ErrorMsg(pParse,
-				"cannot create trigger on system table");
 		goto trigger_cleanup;
 	}
 
