@@ -32,7 +32,11 @@
 %syntax_error {
   UNUSED_PARAMETER(yymajor);  /* Silence some compiler warnings */
   assert( TOKEN.z[0] );  /* The tokenizer always gives us a token */
-  sqlite3ErrorMsg(pParse, "near \"%T\": syntax error", &TOKEN);
+  if (yypParser->is_fallback_failed && TOKEN.isReserved) {
+    sqlite3ErrorMsg(pParse, "keyword \"%T\" is reserved", &TOKEN);
+  } else {
+    sqlite3ErrorMsg(pParse, "near \"%T\": syntax error", &TOKEN);
+  }
 }
 %stack_overflow {
   sqlite3ErrorMsg(pParse, "parser stack overflow");
@@ -209,13 +213,12 @@ columnname(A) ::= nm(A) typetoken(Y). {sqlite3AddColumn(pParse,&A,&Y);}
 // This obviates the need for the "id" nonterminal.
 //
 %fallback ID
-  ABORT ACTION AFTER ANALYZE ASC ATTACH BEFORE BEGIN BY CASCADE CAST COLUMNKW
-  CONFLICT DATABASE DEFERRED DESC DETACH EACH END EXPLAIN FAIL FOR
-  IGNORE IMMEDIATE INITIALLY INSTEAD LIKE_KW MATCH NO PLAN
-  QUERY KEY OF OFFSET PRAGMA RAISE RECURSIVE RELEASE REPLACE RESTRICT ROW
-  ROLLBACK SAVEPOINT TRIGGER VIEW WITH WITHOUT
+  ABORT ACTION ADD AFTER AUTOINCREMENT BEFORE CASCADE
+  CONFLICT DEFERRED END FAIL
+  IGNORE INDEXED INITIALLY INSTEAD ISNULL NO NOTNULL  MATCH PLAN
+  QUERY KEY OFFSET RAISE RELEASE REPLACE RESTRICT
 %ifdef SQLITE_OMIT_COMPOUND_SELECT
-  EXCEPT INTERSECT UNION
+  INTERSECT 
 %endif SQLITE_OMIT_COMPOUND_SELECT
   REINDEX RENAME CTIME_KW IF
   .
@@ -229,8 +232,16 @@ columnname(A) ::= nm(A) typetoken(Y). {sqlite3AddColumn(pParse,&A,&Y);}
 // The name of a column or table can be any of the following:
 //
 %type nm {Token}
-nm(A) ::= id(A).
-nm(A) ::= STRING(A).
+nm(A) ::= id(A). {
+  if(A.isReserved) {
+    sqlite3ErrorMsg(pParse, "keyword \"%T\" is reserved", &A);
+  }
+}
+nm(A) ::= STRING(A). {
+  if(A.isReserved) {
+    sqlite3ErrorMsg(pParse, "keyword \"%T\" is reserved", &A);
+  }
+}
 nm(A) ::= JOIN_KW(A).
 
 // A typetoken is really zero or more tokens that form a type name such
