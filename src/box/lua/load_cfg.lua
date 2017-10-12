@@ -344,8 +344,12 @@ end
 
 setmetatable(box, {
     __index = function(table, index)
-        error(debug.traceback("Please call box.cfg{} first"))
-        error("Please call box.cfg{} first")
+        if box_configured[index] then
+            box.cfg{}
+            return box[index]
+        else
+            error("No such box method/option")
+        end
      end
 })
 
