@@ -47,17 +47,26 @@ static inline struct func *
 access_check_func(const char *name, uint32_t name_len)
 {
 	struct func *func = func_by_name(name, name_len);
+
+
 	struct credentials *credentials = current_user();
 	/*
 	 * If the user has universal access, don't bother with checks.
 	 * No special check for ADMIN user is necessary
 	 * since ADMIN has universal access.
 	 */
-	if ((credentials->universal_access & PRIV_ALL) == PRIV_ALL)
-		return func;
+	if ((credentials->universal_access & PRIV_ALL) == PRIV_ALL) {
+		if (func == NULL) {
+			diag_set(ClientError, ER_NO_SUCH_FUNCTION, name);
+			return NULL;
+		} else {
+			return func;
+		}
+	}
+
 	uint8_t access = PRIV_X & ~credentials->universal_access;
-	if (func == NULL || (func->def->uid != credentials->uid &&
-	     access & ~func->access[credentials->auth_token].effective)) {
+	if (func == NULL || (((func->def->uid != credentials->uid &&
+	     access & ~func->access[credentials->auth_token].effective)))) {
 		/* Access violation, report error. */
 		struct user *user = user_find_xc(credentials->uid);
 		tnt_raise(ClientError, ER_FUNCTION_ACCESS_DENIED,
@@ -132,8 +141,13 @@ error:
 int
 box_func_reload(const char *name)
 {
+	if (name == NULL) {
+		return -1;
+	}
 	size_t name_len = strlen(name);
 	struct func *func = access_check_func(name, name_len);
+	if (func == NULL)
+		return -1;
 	if (func->def->language != FUNC_LANGUAGE_C || func->func == NULL)
 		return 0; /* Nothing to do */
 	if (func_reload(func) == 0)

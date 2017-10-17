@@ -267,3 +267,11 @@ box.schema.func.drop("reload.test_reload_fail")
 _ = fio.unlink(reload_path)
 ---
 ...
+box.schema.func.reload()
+---
+- error: Function 'function name' does not exist
+...
+box.schema.func.reload("non-existing")
+---
+- error: Function 'non-existing' does not exist
+...
