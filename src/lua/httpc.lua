@@ -113,7 +113,6 @@ local function process_headers(headers)
             end
         end
     end
-    return headers
 end
 
 --
@@ -184,8 +183,10 @@ curl_mt = {
                 error('request(method, url [, options]])')
             end
             local resp = self.curl:request(method, url, body, opts or {})
-            if resp and resp.headers then
-                resp.headers = process_headers(resp.headers)
+            if resp then
+                resp.headers = resp.headers or {}
+                process_headers(resp.headers)
+                resp.cookies = resp.cookies or {}
             end
             return resp
         end,

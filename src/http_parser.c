@@ -3,11 +3,13 @@
 #include "httpc.h"
 #include "http_parser.h"
 
-#define LF     (unsigned char) '\n'
-#define CR     (unsigned char) '\r'
-#define CRLF   "\r\n"
+#define LF		(unsigned char) '\n'
+#define CR		(unsigned char) '\r'
+#define CRLF	"\r\n"
+#define SP		' '
+#define HT		'\t'
 
-int
+static int
 http_parse_status_line(struct http_parser *parser, char **bufp, const char *end_buf)
 {
 	char   ch;
@@ -258,7 +260,7 @@ http_parse_header_line(struct http_parser *parser, char **bufp, const char *end_
 
 						if (c) {
 							parser->header_name[0] = c;
-							parser->header_name_index= 1;
+							parser->header_name_index = 1;
 							break;
 						}
 
@@ -431,5 +433,63 @@ http_parse_header_line(struct http_parser *parser, char **bufp, const char *end_
 	header_done:
 
 	*bufp = p + 1;
+	return HTTP_PARSE_DONE;
+}
+
+static inline int
+is_special(char c) {
+	if (c == '(' || c == ')' || c == '<' || c == '>' || c == '@'
+		|| c == ',' || c == ';' || c == ':' || c == '\\' || c == '\"'
+		|| c == '/' || c == '[' || c == ']' || c == '?' || c == '='
+		|| c == '{' || c == '}' || c == SP || c == HT) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+int
+http_parse_cookie(struct cookie_parser *parser, char **bufp, const char *end_buf)
+{
+	char *p = *bufp;
+	parser->cookie_value_start = parser->cookie_value_end = p;
+	while (p < end_buf) {
+		for (; p < end_buf && *p == ' '; p++) {
+			/* void */
+		}
+		parser->cookie_key_start = p;
+
+		for (;p < end_buf && !is_special(*p); p++){
+
+		}
+		parser->cookie_key_end = p;
+		if (p == end_buf || *p++ != '=') {
+			/* the invalid header value */
+			parser->cookie_key_end = parser->cookie_key_start;
+			goto skip;
+		}
+
+		while (p < end_buf && *p == ' ') { p++; }
+		parser->cookie_value_start = p;
+		for (; p < end_buf && *p != ';'; p++) {
+			/* void */
+		}
+
+		parser->cookie_value_end = p;
+		*bufp = p + 1;
+		return HTTP_PARSE_OK;
+
+		skip:
+
+		while (p < end_buf) {
+			char ch = *p++;
+			if (ch == ';' || ch == ',') {
+				break;
+			}
+		}
+
+		while (p < end_buf && *p == ' ') { p++; }
+	}
 	return HTTP_PARSE_DONE;
 }

@@ -61,6 +61,43 @@ lua_add_key_u64(lua_State *L, const char *key, uint64_t value)
 }
 
 static void
+parse_cookies(lua_State *L, char *buffer, const char *end_buffer)
+{
+	struct cookie_parser parser;
+	lua_pushstring(L, "cookies");
+	lua_pushstring(L, "cookies");
+	lua_gettable(L, -3);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_newtable(L);
+	} else {
+		assert(lua_istable(L, -1));
+	}
+
+	while (true) {
+		int rc = http_parse_cookie(&parser, &buffer, end_buffer);
+		if (rc == HTTP_PARSE_DONE) {
+			break;
+		}
+		if (parser.cookie_key_end - parser.cookie_key_start <= 0) {
+			continue;
+		}
+		lua_pushlstring(L, parser.cookie_key_start, parser.cookie_key_end - parser.cookie_key_start);
+
+		lua_pushlstring(L, parser.cookie_key_start, parser.cookie_key_end - parser.cookie_key_start);
+		lua_gettable(L, -3);
+		/* don't rewrite old key-pairs */
+		if (lua_isnil(L, -1)) {
+			lua_pop(L, 1);
+			lua_pushlstring(L, parser.cookie_value_start, parser.cookie_value_end - parser.cookie_value_start);
+			lua_settable(L, -3);
+		}
+	}
+	/* cookies */
+	lua_settable(L, -3);
+}
+
+static void
 parse_headers(lua_State *L, char *buffer, size_t len)
 {
 	struct http_parser parser;
@@ -97,6 +134,19 @@ parse_headers(lua_State *L, char *buffer, size_t len)
 			}
 			/*headers[parser.header] = {value}*/
 			lua_settable(L, -3);
+			if (strncmp(parser.header_name, "set-cookie", parser.header_name_index) == 0) {
+				/* save headers */
+				lua_settable(L, -3);
+
+				/* push cookies */
+				parse_cookies(L, parser.header_value_start, parser.header_value_end);
+
+				/* get table of headers back on stack */
+				lua_pushstring(L, "headers");
+				lua_pushstring(L, "headers");
+				lua_gettable(L, -3);
+				assert(lua_istable(L, -1));
+			}
 		}
 	}
 
